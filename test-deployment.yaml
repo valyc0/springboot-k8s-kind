@@ -1,0 +1,39 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: test-app
+  labels:
+    app: test-app        # etichetta usata dal Service per trovare il Pod
+spec:
+  containers:
+  - name: test-app
+    image: hashicorp/http-echo:latest
+    args:
+    - "-text=The test has been successful!"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: test-service
+spec:
+  selector:
+    app: test-app        # collega il Service al Pod con questo label
+  ports:
+  - port: 5678           # porta interna al cluster su cui ascolta il Service
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-ingress
+spec:
+  ingressClassName: nginx  # usa il controller ingress-nginx installato prima
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: "/app"       # tutte le richieste che iniziano con /app
+        backend:
+          service:
+            name: test-service
+            port:
+              number: 5678

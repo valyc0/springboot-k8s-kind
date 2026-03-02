@@ -1,0 +1,39 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: test-app1
+  labels:
+    app: test-app1
+spec:
+  containers:
+  - name: test-app1
+    image: hashicorp/http-echo:latest
+    args:
+    - "-text=The test has been successful1111111!"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: test-service1
+spec:
+  selector:
+    app: test-app1
+  ports:
+  - port: 5678
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-ingress1
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - pathType: Prefix
+        path: "/app1"
+        backend:
+          service:
+            name: test-service1
+            port:
+              number: 5678

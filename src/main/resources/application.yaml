@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: spring-kind-default
+
+app:
+  name: ${spring.application.name}
+
+server:
+  port: 8080

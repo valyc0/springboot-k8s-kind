@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spring-boot-prod-config
+data:
+  application-prod.yaml: |
+    spring:
+      application:
+        name: spring-kind-prod
+
+    app:
+      name: ${spring.application.name}
+
+    logging:
+      level:
+        root: INFO
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-boot-app
+  labels:
+    app: spring-boot-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spring-boot-app
+  template:
+    metadata:
+      labels:
+        app: spring-boot-app
+    spec:
+      containers:
+      - name: spring-boot-app
+        image: kind-registry:5000/spring-boot-app:0.0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: prod
+        - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+          value: file:/config/
+        volumeMounts:
+        - name: external-config
+          mountPath: /config/application-prod.yaml
+          subPath: application-prod.yaml
+      volumes:
+      - name: external-config
+        configMap:
+          name: spring-boot-prod-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spring-boot-service
+spec:
+  selector:
+    app: spring-boot-app
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spring-boot-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /spring(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: spring-boot-service
+            port:
+              number: 8080
